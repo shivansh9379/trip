@@ -1,0 +1,417 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Travel Tracker - Live Location & Itinerary</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @keyframes pulse { 0%,100% { opacity: 1 } 50% { opacity: 0.5 } }
+        .animate-pulse { animation: pulse 2s cubic-bezier(0.4,0,0.6,1) infinite; }
+        @keyframes fadeIn { from { opacity: 0 } to { opacity: 1 } }
+        .fade-in { animation: fadeIn 1s ease-in; }
+        .glass-effect { background: rgba(255,255,255,0.95); backdrop-filter: blur(10px); }
+        .btn-primary { background: #4f46e5; color: white; padding: .5rem 1rem; border-radius: 9999px; border: none; cursor: pointer; font-size: .875rem; font-weight: 600; }
+        .btn-outline { background: white; color: #374151; padding: .5rem 1rem; border-radius: 9999px; border: 1px solid #cbd5e1; cursor: pointer; font-size: .875rem; font-weight: 500; }
+        .btn-primary:hover { background: #4338ca; } .btn-outline:hover { background: #f3f4f6; }
+        /* Made-by box styling */
+        .made-by-box { background: rgba(255,255,255,0.95); border: 1px solid rgba(0,0,0,0.06); padding: .75rem 1rem; border-radius: 12px; display: inline-block; font-weight: 700; letter-spacing: 0.5px; }
+        .made-by-label { font-size: .75rem; color: #374151; }
+    </style>
+</head>
+<body class="min-h-screen">
+    <!-- Dynamic Background -->
+    <div id="dynamicBackground" class="fixed inset-0 bg-cover bg-center transition-all duration-1000 fade-in"
+         style="background-image: url('https://images.unsplash.com/photo-1436491865332-7a61a109cc05?w=1920&q=80');"></div>
+    <div class="fixed inset-0 bg-black bg-opacity-40"></div>
+
+    <div id="app" class="relative z-10 p-4 min-h-screen">
+        <div class="max-w-6xl mx-auto">
+            <!-- TOP CONTROL BAR: Removed the "Day-by-Day Timeline" button as requested -->
+            <div class="glass-effect rounded-2xl shadow-2xl p-4 mb-6 flex items-center gap-3">
+                <div>
+                    <h1 class="text-2xl font-bold text-gray-800">Travel Tracker</h1>
+                    <p class="text-xs text-gray-600">Enter an IST date & time to see exactly where the person will be at that moment.</p>
+                </div>
+                <div class="ml-auto">
+                    <button id="manualToggleBtn" class="btn-primary">Enter Date & Time (IST)</button>
+                </div>
+            </div>
+
+            <!-- MANUAL IST INPUT PANEL (TOGGLED) -->
+            <div id="manualControls" class="glass-effect rounded-2xl shadow-2xl p-4 mb-6 hidden">
+                <h2 class="text-sm font-semibold text-gray-800 mb-2">Enter IST Date & Time</h2>
+                <p class="text-xs text-gray-600 mb-2">
+                    This will show the exact itinerary item (flight/hotel/transit) and city for that IST moment.
+                </p>
+                <div class="flex flex-col md:flex-row gap-3 items-start md:items-center">
+                    <input type="datetime-local" id="manualIST" class="border rounded px-3 py-2 text-sm w-full md:w-auto" />
+                    <div class="flex gap-2">
+                        <button id="applyManualBtn" class="btn-primary">Apply</button>
+                        <button id="clearManualBtn" class="btn-outline">Clear</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <!-- Left Column - Now shows "where the person is at the entered time" -->
+                <div class="lg:col-span-1">
+                    <div class="glass-effect rounded-2xl shadow-2xl p-6 mb-6">
+                        <div class="flex items-center gap-3 mb-4">
+                            <div class="bg-indigo-100 p-3 rounded-full">
+                                <svg class="text-indigo-600" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
+                                    <circle cx="12" cy="10" r="3"></circle>
+                                </svg>
+                            </div>
+                            <div>
+                                <h2 class="text-xl font-bold text-gray-800">Where they are at this IST time</h2>
+                                <p class="text-xs text-gray-600">Shows itinerary event and city for the chosen IST moment.</p>
+                            </div>
+                        </div>
+                        <div id="locationContent" class="text-sm text-gray-700">
+                            <p class="text-xs text-gray-500">
+                                Use the "Enter Date & Time (IST)" button to pick an IST moment and press Apply — the app will show the itinerary item and city for that time.
+                            </p>
+                        </div>
+                    </div>
+
+                    <!-- MADE BY BOX (placed where Traveler Info used to be) -->
+                    <div class="glass-effect rounded-2xl shadow-2xl p-6">
+                        <div class="flex items-center gap-2 mb-1">
+                            <h3 class="text-lg font-semibold text-gray-800">Credits</h3>
+                        </div>
+                        <div class="mt-2">
+                            <div class="made-by-box">
+                                <div class="made-by-label">MADE BY:- SHIVANSH SHRIVASTAVA</div>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+
+                <!-- Right Column - Complete Itinerary -->
+                <div class="lg:col-span-2">
+                    <div class="glass-effect rounded-2xl shadow-2xl p-6">
+                        <div class="flex items-center gap-2 mb-6">
+                            <svg class="text-indigo-600" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                                <line x1="16" y1="2" x2="16" y2="6"></line>
+                                <line x1="8" y1="2" x2="8" y2="6"></line>
+                                <line x1="3" y1="10" x2="21" y2="10"></line>
+                            </svg>
+                            <h2 class="text-xl font-bold text-gray-800">Complete Trip Schedule</h2>
+                            <button id="timelineBtn2" class="ml-auto text-xs text-indigo-600 underline">Open Timeline Page</button>
+                        </div>
+                        <div id="itineraryView" class="space-y-3 max-h-[600px] overflow-y-auto pr-2"></div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <script>
+        // -------- BACKGROUNDS -
+        const backgrounds = {
+            flight: 'https://images.unsplash.com/photo-1436491865332-7a61a109cc05?w=1920&q=80',
+            airport: 'https://images.unsplash.com/photo-1583839907551-037084e75e07?w=1920&q=80',
+            hoboken: 'https://images.unsplash.com/photo-1568515387631-8b650bbcdb90?w=1920&q=80',
+            losangeles: 'https://images.unsplash.com/photo-1534190239940-9ba8944ea261?w=1920&q=80',
+            lasvegas: 'https://images.unsplash.com/photo-1605833556294-ea5c7a74f57d?w=1920&q=80',
+            newyork: 'https://images.unsplash.com/photo-1496442226666-8d4d0e62e6e9?w=1920&q=80',
+            hotel: 'https://images.unsplash.com/photo-1566073771259-6a8506099945?w=1920&q=80',
+            bangalore: 'https://images.unsplash.com/photo-1596176530529-78163a4f7af2?w=1920&q=80'
+        };
+
+        // -------- ITINERARY (unchanged) --------
+        const itinerary = [
+            { date: "1 December (IST)", events: [
+                { time: "03:30", endTime: "13:35", icon: "✈️", type: "flight", bg: "flight", text: "Flight departs Bangalore → Frankfurt", title: "In Flight to Frankfurt" },
+                { time: "13:35", endTime: "18:00", icon: "🛫", type: "transit", bg: "airport", text: "Lands in Frankfurt (09:05 local)", title: "Transit at Frankfurt Airport" },
+                { time: "18:00", endTime: "26:30", icon: "✈️", type: "flight", bg: "flight", text: "Flight departs Frankfurt → Newark", title: "In Flight to Newark" }
+            ]},
+            { date: "2 December (IST)", events: [
+                { time: "01:30", endTime: "48:00", icon: "🏨", type: "hotel", bg: "hoboken", text: "Hoboken hotel check-in (15:00 local on 1 Dec)", title: "Staying at Hoboken, New Jersey" }
+            ]},
+            { date: "3 December (IST)", events: [
+                { time: "17:29", endTime: "23:50", icon: "✈️", type: "flight", bg: "flight", text: "Flight departs Newark → Los Angeles (06:59 local)", title: "In Flight to Los Angeles" },
+                { time: "23:50", endTime: "29:30", icon: "🛫", type: "transit", bg: "airport", text: "Lands in Los Angeles (10:20 local)", title: "Arrived in Los Angeles" }
+            ]},
+            { date: "4 December (IST)", events: [
+                { time: "05:30", endTime: "72:00", icon: "🏨", type: "hotel", bg: "losangeles", text: "Monterey Park hotel (LA)", title: "Exploring Los Angeles" }
+            ]},
+            { date: "5 December (IST)", events: [
+                { time: "00:00", endTime: "24:00", icon: "🏨", type: "hotel", bg: "losangeles", text: "Staying at Monterey Park (LA)", title: "Day in Los Angeles" }
+            ]},
+            { date: "6 December (IST)", events: [
+                { time: "00:00", endTime: "23:30", icon: "🏨", type: "hotel", bg: "losangeles", text: "Last day in LA", title: "Last Day in Los Angeles" },
+                { time: "23:30", endTime: "29:30", icon: "🛫", type: "transit", bg: "airport", text: "Checkout & travel to airport", title: "Heading to Airport" }
+            ]},
+            { date: "7 December (IST)", events: [
+                { time: "05:30", endTime: "06:40", icon: "✈️", type: "flight", bg: "flight", text: "Flight LAX → Las Vegas", title: "Flying to Las Vegas" },
+                { time: "06:40", endTime: "72:00", icon: "🏨", type: "hotel", bg: "lasvegas", text: "Arrived in Las Vegas", title: "In Las Vegas" }
+            ]},
+            { date: "8 December (IST)", events: [
+                { time: "00:00", endTime: "24:00", icon: "🎰", type: "hotel", bg: "lasvegas", text: "Full day in Las Vegas", title: "Exploring Las Vegas" }
+            ]},
+            { date: "9 December (IST)", events: [
+                { time: "00:30", endTime: "17:30", icon: "🎰", type: "hotel", bg: "lasvegas", text: "Morning in Vegas", title: "Last Morning in Vegas" },
+                { time: "17:30", endTime: "25:19", icon: "✈️", type: "flight", bg: "flight", text: "Flight Las Vegas → Newark", title: "Flying to New York" }
+            ]},
+            { date: "10 December (IST)", events: [
+                { time: "01:19", endTime: "01:30", icon: "🛫", type: "transit", bg: "airport", text: "Landed in Newark", title: "Arrived in Newark" },
+                { time: "01:30", endTime: "72:00", icon: "🏨", type: "hotel", bg: "newyork", text: "NY hotel check-in", title: "In New York City" }
+            ]},
+            { date: "11 December (IST)", events: [
+                { time: "00:00", endTime: "24:00", icon: "🗽", type: "hotel", bg: "newyork", text: "Full day in New York", title: "Exploring New York" }
+            ]},
+            { date: "12 December (IST)", events: [
+                { time: "00:00", endTime: "22:30", icon: "🗽", type: "hotel", bg: "newyork", text: "Last day in NY", title: "Final Day in New York" },
+                { time: "22:30", endTime: "30:00", icon: "🛫", type: "transit", bg: "airport", text: "Checkout & airport", title: "Heading to Airport" }
+            ]},
+            { date: "13 December (IST)", events: [
+                { time: "06:00", endTime: "13:40", icon: "✈️", type: "flight", bg: "flight", text: "Flight Newark → Frankfurt", title: "Flying to Frankfurt" },
+                { time: "13:40", endTime: "17:05", icon: "🛫", type: "transit", bg: "airport", text: "Transit in Frankfurt", title: "At Frankfurt Airport" },
+                { time: "17:05", endTime: "25:50", icon: "✈️", type: "flight", bg: "flight", text: "Flight Frankfurt → Bengaluru", title: "Flying Home to Bangalore" }
+            ]},
+            { date: "14 December (IST)", events: [
+                { time: "01:50", endTime: "03:00", icon: "🏠", type: "home", bg: "bangalore", text: "Arrived back in Bangalore ✅", title: "Back Home in Bangalore!" }
+            ]}
+        ];
+
+        // -------- MANUAL TIME HANDLING --------
+        let manualTime = null; // null => use real current IST
+
+        function getCurrentTimeIST() {
+            if (manualTime) return new Date(manualTime);
+            const now = new Date();
+            return new Date(now.toLocaleString('en-US', { timeZone: 'Asia/Kolkata' }));
+        }
+
+        // -------- TIME PARSING / FIND EVENT (robust) --------
+        const months = { 'December': 11 };
+
+        function parseEventTime(dateStr, timeStr) {
+            const dateParts = dateStr.match(/(\d+)\s+(\w+)/);
+            if (!dateParts) return null;
+            const day = parseInt(dateParts[1], 10);
+            const monthName = dateParts[2];
+            const month = months[monthName];
+            const YEAR = getCurrentTimeIST().getFullYear();
+
+            const timeMatch = timeStr.match(/(\d+):(\d+)/);
+            if (!timeMatch) return null;
+            let hours = parseInt(timeMatch[1], 10);
+            const minutes = parseInt(timeMatch[2], 10);
+
+            let extraDays = 0;
+            if (hours >= 24) {
+                extraDays = Math.floor(hours / 24);
+                hours = hours % 24;
+            }
+
+            return new Date(YEAR, month, day + extraDays, hours, minutes);
+        }
+
+        function parseClockTimeOnDate(startDate, clockTimeStr) {
+            const m = clockTimeStr.match(/(\d+):(\d+)/);
+            if (!m) return null;
+            const h = parseInt(m[1], 10);
+            const min = parseInt(m[2], 10);
+            const d = new Date(startDate);
+            d.setHours(h, min, 0, 0);
+            if (d < startDate) d.setDate(d.getDate() + 1);
+            return d;
+        }
+
+        function findCurrentActivity(nowIST) {
+            for (let day of itinerary) {
+                for (let event of day.events) {
+                    const startTime = parseEventTime(day.date, event.time);
+                    if (!startTime) continue;
+
+                    let endTime = null;
+                    if (typeof event.endTime === 'string' && event.endTime.includes(':')) {
+                        endTime = parseClockTimeOnDate(startTime, event.endTime);
+                    } else {
+                        const num = parseFloat(event.endTime);
+                        if (!isNaN(num)) {
+                            endTime = new Date(startTime);
+                            const whole = Math.floor(num);
+                            const fraction = num - whole;
+                            endTime.setHours(endTime.getHours() + whole);
+                            endTime.setMinutes(endTime.getMinutes() + Math.round(fraction * 60));
+                        }
+                    }
+
+                    if (!endTime) continue;
+                    if (nowIST >= startTime && nowIST <= endTime) {
+                        return { event, dayDate: day.date, startTime, endTime };
+                    }
+                }
+            }
+            return null;
+        }
+
+        // -------- CITY / TIMEZONE INFERENCE --------
+        const cityMappings = [
+            { keywords: ['Bangalore', 'Bengaluru'], city: 'Bengaluru, India', tz: 'Asia/Kolkata', coords: '12.9716,77.5946' },
+            { keywords: ['Frankfurt'], city: 'Frankfurt, Germany', tz: 'Europe/Berlin', coords: '50.1109,8.6821' },
+            { keywords: ['Newark', 'New York', 'Hoboken'], city: 'Newark / New York, USA', tz: 'America/New_York', coords: '40.7128,-74.0060' },
+            { keywords: ['Los Angeles', 'Monterey Park', 'LAX'], city: 'Los Angeles, USA', tz: 'America/Los_Angeles', coords: '34.0522,-118.2437' },
+            { keywords: ['Las Vegas', 'Vegas'], city: 'Las Vegas, USA', tz: 'America/Los_Angeles', coords: '36.1699,-115.1398' }
+        ];
+
+        function inferCityInfo(event) {
+            const text = (event.text || '').toLowerCase();
+            for (const m of cityMappings) {
+                for (const kw of m.keywords) {
+                    if (text.includes(kw.toLowerCase())) return m;
+                }
+            }
+            if (event.bg === 'bangalore') return cityMappings[0];
+            if (event.bg === 'hoboken' || event.bg === 'newyork') return cityMappings[2];
+            if (event.bg === 'losangeles') return cityMappings[3];
+            if (event.bg === 'lasvegas') return cityMappings[4];
+            return null;
+        }
+
+        // -------- LOCATION DISPLAY (now shows exact event & city for entered time) --------
+        function updateLocationFromActivity(activityResult, nowIST) {
+            const container = document.getElementById('locationContent');
+            if (!activityResult) {
+                // No matching event: show helpful message + nearest info (optional: show previous/next)
+                container.innerHTML = `
+                    <div class="bg-blue-50 border border-blue-200 rounded-lg p-3 text-xs text-gray-600">
+                        No itinerary event covers this IST time. Try another time within the trip dates.
+                        <div class="mt-2 text-xs text-gray-500">Current IST: ${nowIST.toLocaleString('en-IN', { hour12:true, year:'numeric', month:'short', day:'2-digit', hour:'2-digit', minute:'2-digit' })}</div>
+                    </div>`;
+                return;
+            }
+
+            const ev = activityResult.event;
+            const cityInfo = inferCityInfo(ev);
+            const localString = cityInfo ? nowIST.toLocaleString('en-US', { timeZone: cityInfo.tz, hour12: true, year:'numeric', month:'short', day:'2-digit', hour:'2-digit', minute:'2-digit' }) : 'Local time unknown';
+
+            // format start/end in IST for clarity
+            const fmt = (d) => d.toLocaleString('en-IN', { hour12:true, year:'numeric', month:'short', day:'2-digit', hour:'2-digit', minute:'2-digit' });
+            const startStr = fmt(activityResult.startTime);
+            const endStr = fmt(activityResult.endTime);
+
+            container.innerHTML = `
+                <div class="space-y-2 text-sm">
+                    <div>
+                        <span class="font-semibold text-gray-700">At IST:</span>
+                        <span class="text-indigo-700">${getCurrentTimeIST().toLocaleString('en-IN', { hour12:true, year:'numeric', month:'short', day:'2-digit', hour:'2-digit', minute:'2-digit' })} IST</span>
+                    </div>
+                    <div>
+                        <span class="font-semibold text-gray-700">Itinerary item:</span>
+                        <span class="text-gray-800 font-semibold">${ev.title || ev.text}</span>
+                    </div>
+                    <div>
+                        <span class="font-semibold text-gray-700">City (inferred):</span>
+                        <span class="text-gray-800">${cityInfo ? cityInfo.city : 'Could not infer city'}</span>
+                    </div>
+                    <div>
+                        <span class="font-semibold text-gray-700">Local time there:</span>
+                        <span class="text-indigo-700">${localString}</span>
+                    </div>
+                    <div>
+                        <span class="font-semibold text-gray-700">Event window (IST):</span>
+                        <span class="text-gray-800">${startStr} — ${endStr}</span>
+                    </div>
+                    <div class="pt-1">
+                        ${cityInfo ? `<a href="https://www.google.com/maps?q=${cityInfo.coords}" target="_blank" class="inline-flex items-center justify-center px-3 py-2 text-xs font-medium bg-indigo-600 text-white rounded-lg">View city on Google Maps</a>` : ''}
+                    </div>
+                </div>
+            `;
+
+            // update background image to match the event type (keeps visual feedback even without the overview banner)
+            const bgElement = document.getElementById('dynamicBackground');
+            if (bgElement && backgrounds[ev.bg]) bgElement.style.backgroundImage = `url('${backgrounds[ev.bg]}')`;
+        }
+
+        // -------- ITINERARY RENDER --------
+        function isSameCalendarDayFromString(dayString, dateObj) {
+            const dParts = dayString.match(/(\d+)\s+(\w+)/);
+            if (!dParts) return false;
+            const day = parseInt(dParts[1], 10);
+            const monthName = dParts[2];
+            const month = months[monthName];
+            return day === dateObj.getDate() && month === dateObj.getMonth() && dateObj.getFullYear() === dateObj.getFullYear();
+        }
+
+        function renderItinerary() {
+            const container = document.getElementById('itineraryView');
+            const nowIST = getCurrentTimeIST();
+            container.innerHTML = itinerary.map(day => {
+                const today = isSameCalendarDayFromString(day.date, nowIST);
+                return `
+                    <div class="bg-white bg-opacity-90 rounded-lg shadow-md p-4 ${today ? 'ring-2 ring-green-500' : ''}">
+                        <div class="flex items-center gap-2 mb-3">
+                            <h3 class="font-bold text-gray-800">${day.date}</h3>
+                            ${today ? '<span class="ml-auto bg-green-500 text-white text-xs px-2 py-1 rounded-full font-semibold">SELECTED IST DAY</span>' : ''}
+                        </div>
+                        <div class="space-y-2">
+                            ${day.events.map(event => `
+                                <div class="flex items-start gap-3 text-sm">
+                                    <div class="text-xl mt-0.5">${event.icon}</div>
+                                    <div class="flex-1">
+                                        <span class="font-semibold text-indigo-600">${event.time}</span>
+                                        <span class="text-gray-700 ml-2">${event.text}</span>
+                                    </div>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // -------- BUTTONS & MANUAL INPUT --------
+        document.getElementById('timelineBtn2').onclick = () => window.open('timeline.html', '_blank');
+
+        const manualToggleBtn = document.getElementById('manualToggleBtn');
+        const manualControls = document.getElementById('manualControls');
+        const manualISTInput = document.getElementById('manualIST');
+
+        manualToggleBtn.addEventListener('click', () => manualControls.classList.toggle('hidden'));
+
+        function updateLocationAndDisplay() {
+            const nowIST = getCurrentTimeIST();
+            const activityResult = findCurrentActivity(nowIST);
+            updateLocationFromActivity(activityResult, nowIST);
+        }
+
+        document.getElementById('applyManualBtn').addEventListener('click', () => {
+            const val = manualISTInput.value;
+            if (!val) { alert('Please select a date & time in IST'); return; }
+            const parts = val.split('T');
+            const dateParts = parts[0].split('-').map(Number);
+            const timeParts = parts[1].split(':').map(Number);
+            const [year, month, day] = dateParts;
+            const [hour, minute] = timeParts;
+            const IST_offset_minutes = 5 * 60 + 30; // 330
+            const utcMillisForChosenIST = Date.UTC(year, month - 1, day, hour, minute) - (IST_offset_minutes * 60 * 1000);
+            manualTime = new Date(utcMillisForChosenIST);
+            renderItinerary();
+            updateLocationAndDisplay();
+        });
+
+        document.getElementById('clearManualBtn').addEventListener('click', () => {
+            manualTime = null;
+            manualISTInput.value = '';
+            renderItinerary();
+            updateLocationAndDisplay();
+        });
+
+        // -------- INITIALIZE --------
+        renderItinerary();
+        updateLocationAndDisplay();
+        setInterval(() => { if (!manualTime) updateLocationAndDisplay(); }, 60000);
+    </script>
+</body>
+</html>
+
+
